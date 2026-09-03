@@ -1,4 +1,4 @@
-﻿import engine3
+import engine3
 
 def run_all_tests():
     print(">>> [模組三] 測試 1：氣象 API 呼叫與快取機制")

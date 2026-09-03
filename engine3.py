@@ -1,4 +1,4 @@
-﻿import time
+import time
 import requests
 from typing import Dict, List, Any
 
