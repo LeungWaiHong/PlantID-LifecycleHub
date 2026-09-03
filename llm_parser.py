@@ -31,7 +31,10 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-3.5-flash-lite")
+MODEL_NAME = os.getenv("GEMINI_MODEL_NAME") or "gemini-3.5-flash-lite"
+# 注意: 用 os.getenv("X", "default") 的寫法在 .env 裡寫 X=（空字串）
+# 時不會退回 default，只有完全沒這個 key 才會退回。用 "or" 才能同時
+# 涵蓋「沒設定」跟「設定了但是空字串」這兩種情況。
 
 SYSTEM_PROMPT = """你是 PlantQuest 植栽系統的 AI 記帳解析器。
 使用者會用口語化的一句中文描述他剛才做的園藝相關行為(可能同時包含買東西、採收、澆水等多件事)。
