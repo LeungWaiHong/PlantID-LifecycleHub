@@ -3,7 +3,7 @@ dispatcher.py
 負責人: 梁偉航 (模組一 核心輸入層)
 
 把 llm_parser 解析出的結構化事件,依 action_type 分派到 db_client 對應的寫入函式。
-拆成獨立檔案是為了讓 test1.py 可以直接測試分派邏輯,不需要真的連 LLM 或 Supabase。
+拆成獨立檔案是為了讓 test1.py 可以直接測試分派邏輯,不需要真的連 LLM 或資料庫。
 """
 
 from typing import Optional
@@ -13,7 +13,7 @@ import db_client as db
 def dispatch_event(event: dict, source: str, raw_text: str) -> dict:
     """
     處理單一事件,回傳處理結果摘要(方便 API 回應與除錯)。
-    刻意不讓單一事件失敗擋住其他事件 -- 呼叫端(main1.py)會逐一 try/except。
+    刻意不讓單一事件失敗擋住其他事件 -- 呼叫端(main.py)會逐一 try/except。
     """
     action_type = event.get("action_type")
     amount = event.get("amount") or 0
@@ -84,7 +84,7 @@ def dispatch_all(events: list, source: str, raw_text: str) -> list:
     for event in events:
         try:
             results.append(dispatch_event(event, source, raw_text))
-        except Exception as e:  # noqa: BLE001 -- 單一事件失敗不擋其他事件
+        except Exception as e:
             results.append({
                 "action_type": event.get("action_type"),
                 "status": "error",

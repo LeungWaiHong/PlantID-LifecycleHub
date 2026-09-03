@@ -19,7 +19,6 @@ import anthropic
 MODEL_NAME = "claude-sonnet-4-6"
 
 # 用 Tool Use 強制結構化輸出,而不是要求模型「請輸出 JSON」這種軟性約束。
-# 這樣即使模型想聊天或加解釋文字,也會被工具呼叫格式鎖住。
 RECORD_EVENTS_TOOL = {
     "name": "record_garden_events",
     "description": "將使用者輸入的園藝記帳語句拆解為結構化事件清單並回傳管家風格的回饋文字",
@@ -35,12 +34,12 @@ RECORD_EVENTS_TOOL = {
                         "action_type": {
                             "type": "string",
                             "enum": [
-                                "plant_purchase",   # 買植物
-                                "tool_purchase",    # 買工具
-                                "container_purchase",  # 買盆器
-                                "supply_purchase",  # 買耗材/介質
-                                "harvest",           # 採收
-                                "generic_expense",   # 其他花銷,無法歸類到上述類別
+                                "plant_purchase",
+                                "tool_purchase",
+                                "container_purchase",
+                                "supply_purchase",
+                                "harvest",
+                                "generic_expense",
                             ],
                         },
                         "item_name": {"type": "string", "description": "品項名稱,例如鹿角蕨、修枝剪、赤玉土"},
@@ -85,7 +84,6 @@ class ParseError(Exception):
 def parse_dictation(raw_text: str, api_key: Optional[str] = None) -> dict:
     """
     呼叫 LLM 解析一句話,回傳 {"events": [...], "companion_feedback": "..."}。
-    對應技術限制提醒: 模糊文字需有預設值與容錯重試機制,不得直接噴 500。
     """
     if not raw_text or not raw_text.strip():
         raise ParseError("輸入文字為空白")
@@ -93,7 +91,7 @@ def parse_dictation(raw_text: str, api_key: Optional[str] = None) -> dict:
     client = anthropic.Anthropic(api_key=api_key or os.getenv("ANTHROPIC_API_KEY"))
 
     last_error = None
-    for attempt in range(2):  # 失敗重試一次,對應「容錯重試機制」的要求
+    for attempt in range(2):
         try:
             response = client.messages.create(
                 model=MODEL_NAME,
@@ -110,9 +108,8 @@ def parse_dictation(raw_text: str, api_key: Optional[str] = None) -> dict:
                         raise ParseError("LLM 回傳缺少必要欄位")
                     return result
             raise ParseError("LLM 未回傳 tool_use 區塊")
-        except Exception as e:  # noqa: BLE001 -- 這裡刻意抓所有例外做重試
+        except Exception as e:
             last_error = e
             continue
 
-    # 兩次都失敗: 不噴 500,回傳一個安全的 fallback 結構,並把錯誤原因往外拋給呼叫端記錄
     raise ParseError(f"LLM 解析失敗(已重試): {last_error}")

@@ -3,7 +3,7 @@ test1.py
 負責人: 梁偉航 (模組一 核心輸入層)
 
 用假的 db_client 函式(monkeypatch)驗證 dispatcher 邏輯是否正確,
-不需要真的連線到 Supabase 或呼叫 Anthropic API,方便任何人在自己電腦上直接跑。
+不需要真的連線到資料庫或呼叫 Anthropic API,方便任何人在自己電腦上直接跑。
 """
 
 import db_client as db
@@ -11,7 +11,7 @@ import dispatcher
 from llm_parser import ParseError, parse_dictation
 
 # ------------------------------------------------------------
-# 用假的記憶體資料庫取代真的 Supabase client,只驗證「邏輯」是否正確
+# 用假的記憶體資料庫取代真的 SQLAlchemy session,只驗證「邏輯」是否正確
 # ------------------------------------------------------------
 
 fake_calls = []
@@ -71,7 +71,6 @@ def test_1_complex_sentence_dispatch():
     """
     對應規格書範例句:
     「花市A3攤買300元鹿角蕨放陽台、買修枝剪250元、採收40g羅勒」
-    模擬 LLM 已經解析好的結構(不真的打 API),驗證 dispatcher 分派是否正確。
     """
     install_fakes()
     parsed_events = [
@@ -91,7 +90,7 @@ def test_1_complex_sentence_dispatch():
 
 
 def test_2_empty_text_raises_parse_error():
-    """空白輸入不該打 API,應直接拋出 ParseError 讓上層轉成友善錯誤訊息"""
+    """空白輸入不該打 API,應直接拋出 ParseError"""
     try:
         parse_dictation("")
         raise AssertionError("應該要拋出 ParseError")
@@ -136,9 +135,7 @@ def test_5_negative_and_zero_amount_guarded():
     ]
     dispatcher.dispatch_all(parsed_events, source="manual", raw_text="test")
     tx_call = [c for c in fake_calls if c[0] == "create_transaction"][0]
-    # amount 防呆邏輯在 db_client.create_transaction 內用 max(0.0, amount),
-    # 這裡驗證 dispatcher 有把值正確傳下去(真正的 clamp 在 db_client 單元測試驗)
-    assert tx_call[2] == -50  # dispatcher 忠實傳遞,防呆責任在 db_client 那層
+    assert tx_call[2] == -50
     print("通過！負數金額有正確傳遞給下一層(clamp 防呆由 db_client 負責,分工清楚)")
 
 
