@@ -6,8 +6,19 @@ llm_parser.py
 用 Structured Output (response_schema) 強制模型回傳固定格式的 JSON,
 避免自由文字造成後端解析崩潰。
 
-使用 Google Gemini (免費方案, 每日 1500 次請求)。
+使用 Google Gemini (免費方案有額度)。
 金鑰取得: https://aistudio.google.com/apikey
+
+模型選擇說明 (2026/9):
+  gemini-3.5-flash-lite -- 目前最新一代裡最便宜、最快的型號，
+  官方定位就是「document parsing / subagent 高頻任務」，這種短句
+  拆解記帳的任務完全用不到大模型的推理能力，選這隻最划算
+  ($0.30 / $2.50 每百萬 token)。
+  如果之後發現複雜複合句解析常常漏掉事件，再考慮換成
+  gemini-3.6-flash 或 gemini-3.7-flash（更強、但貴上好幾倍）。
+
+  舊版原本寫的 gemini-2.0-flash 已於 2026/6/1 正式下架，
+  現在打會直接收到 404，這是這次最優先要修的問題。
 
 對應驗收標準:
   "輸入包含購買、採收、分區、金額的複合語句,
@@ -20,7 +31,7 @@ from typing import Optional
 from google import genai
 from google.genai import types
 
-MODEL_NAME = "gemini-2.0-flash"
+MODEL_NAME = os.getenv("GEMINI_MODEL_NAME", "gemini-3.5-flash-lite")
 
 SYSTEM_PROMPT = """你是 PlantQuest 植栽系統的 AI 記帳解析器。
 使用者會用口語化的一句中文描述他剛才做的園藝相關行為(可能同時包含買東西、採收、澆水等多件事)。
