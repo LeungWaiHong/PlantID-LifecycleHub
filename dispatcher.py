@@ -25,9 +25,10 @@ def dispatch_event(event: dict, source: str, raw_text: str) -> dict:
             zone_name=event.get("zone_name"),
         )
         stall_id = db.find_or_create_market_stall(event.get("market_stall_name")) if event.get("market_stall_name") else None
+        quality_rating = event.get("quality_rating") or None  # 0 代表「沒提到」，存 None 而不是假的 0 星
         db.create_transaction(
             tx_type="plant_purchase", amount=amount, item_name=event.get("item_name"),
-            quality_rating=event.get("quality_rating"), market_stall_id=stall_id,
+            quality_rating=quality_rating, market_stall_id=stall_id,
             plant_id=plant_id, source=source, raw_text=raw_text,
         )
         return {"action_type": action_type, "plant_id": plant_id, "status": "ok"}
@@ -65,6 +66,15 @@ def dispatch_event(event: dict, source: str, raw_text: str) -> dict:
             crop_name=event.get("crop_name") or event.get("item_name") or "未命名作物",
             part=event.get("part"),
             weight_g=event.get("weight_g") or 0,
+        )
+        # 補上統一帳本紀錄(金額固定 0，純粹是讓「採收」這件事也能在
+        # transactions 時間軸上查到，不會只有花錢的事件有紀錄)
+        db.create_transaction(
+            tx_type="harvest_income",
+            amount=0,
+            item_name=f"{event.get('crop_name') or event.get('item_name') or '未命名作物'}"
+                      f"（{event.get('weight_g') or 0}g）",
+            source=source, raw_text=raw_text,
         )
         return {"action_type": action_type, "harvest_id": harvest_id, "status": "ok"}
 
