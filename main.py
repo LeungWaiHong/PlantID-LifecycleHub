@@ -20,6 +20,12 @@ from pydantic import BaseModel, Field
 from typing import Optional, List
 import os
 
+# 一定要在 import db_client / llm_parser 之前呼叫,因為 llm_parser.py
+# 裡的 MODEL_NAME = os.getenv(...) 是模組載入當下就會執行的一行,
+# 如果 load_dotenv() 排在它後面,.env 裡的值就來不及生效。
+from dotenv import load_dotenv
+load_dotenv()
+
 import models3
 import engine3
 from database import SessionLocal
@@ -65,6 +71,7 @@ class DictationResponse(BaseModel):
     companion_feedback: str
     events_result: List[dict]
     dictation_log_id: Optional[str] = None
+    error_message: Optional[str] = None  # 只有 status=failed 時才會有值，方便直接看出真正原因
 
 
 class PhotoBindRequest(BaseModel):
@@ -98,6 +105,7 @@ def parse_and_dispatch(req: DictationRequest):
             companion_feedback="管家有點聽不清楚,可以再說一次或用打字的嗎?",
             events_result=[],
             dictation_log_id=log_id,
+            error_message=str(e),
         )
 
     events_result = dispatch_all(parsed["events"], source=req.source, raw_text=req.raw_text)
